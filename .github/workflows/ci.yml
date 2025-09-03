@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
+    permissions:
+      contents: read
+      packages: read
+      statuses: write # To report GitHub Actions status checks
 
     steps:
       - name: Checkout
