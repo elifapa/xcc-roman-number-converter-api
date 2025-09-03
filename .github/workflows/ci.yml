@@ -52,6 +52,7 @@ jobs:
         with:
           workload_identity_provider: 'projects/264268171873/locations/global/workloadIdentityPools/elif-github-actions-pool/providers/github-provider'
           service_account: elif-github-actions-sa@ae-terraform-2025.iam.gserviceaccount.com
+          token_format: 'access_token'  # Outputs access_token
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
@@ -62,7 +63,7 @@ jobs:
       - name: Docker auth to Google Artifact Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{env.GCP_LOCATION}}
+          registry: ${{env.GCP_LOCATION}}-docker.pkg.dev
           username: oauth2accesstoken
           password: ${{ steps.auth_gcloud.outputs.access_token }}
 
