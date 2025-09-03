@@ -5,10 +5,6 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  id-token: write           # Needed to request OIDC token from GitHub
-  contents: read            # For checkout action
-
 jobs:
   CI_jobs:
     runs-on: ubuntu-latest
@@ -16,7 +12,7 @@ jobs:
       fail-fast: true
     permissions:
       contents: read
-      packages: read
+      id-token: write # Needed to request OIDC token from GitHub
       statuses: write # To report GitHub Actions status checks
 
     steps:
@@ -46,7 +42,6 @@ jobs:
         with:
           workload_identity_provider: 'projects/264268171873/locations/global/workloadIdentityPools/elif-github-actions-pool/providers/github-provider'
           service_account: elif-github-actions-sa@ae-terraform-2025.iam.gserviceaccount.com
-          create_credentials_file: true
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
