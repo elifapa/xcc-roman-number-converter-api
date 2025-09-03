@@ -50,8 +50,7 @@ class PostgresStorage:
                 cursor.execute(sql)
                 return cursor.fetchall()
 
-    def get_response(self, where):
-        ...
+    def get_response(self, where): ...
 
     def create_table_if_not_exists(
         self, schema: str, table: str, columns: dict[str, str], add_pk: bool = True
