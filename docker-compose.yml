@@ -1,0 +1,41 @@
+name: roman-converter-api
+services:
+  postgres:
+    image: postgres:17.0
+    container_name: postgres_db
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "webshop"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 80s
+
+  easyconvert-api:
+    build: .
+    image: easyconvert-api
+    container_name: easyconvert-api
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_DB: ${DB_DB}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./src/xcc_roman_converter_api:/app/xcc-roman-converter-api/src/xcc_roman_converter_api
+    ports:
+      - "8000:8000"
+
+volumes:
+  db_data:

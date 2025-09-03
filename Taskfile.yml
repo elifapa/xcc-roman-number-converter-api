@@ -1,0 +1,86 @@
+version: '3'
+
+vars:
+  LOCATION: europe-west4
+  PROJECT_ID: ae-terraform-2025
+  REPOSITORY: ae-2025-registry
+  TARGET_IMAGE: easyconvert-api
+  TAG: latest
+  PROXY_PORT: 8000
+  CLOUD_RUN_NAME: easyconvert-api
+
+tasks:
+  gcloud:auth:
+    desc: "Authenticate with Google Cloud"
+    cmds:
+      - echo "Authenticating with Google Cloud..."
+      - gcloud auth application-default login
+
+  docker:build:
+    desc: "Build Docker image"
+    dir: ~/projects/xcc-roman-converter-api
+    vars:
+      CURRENT_PWD: 
+        sh: pwd
+      LOCAL_IMAGE: easyconvert-api
+    cmds:
+      - echo "Current directory -> {{.CURRENT_PWD}}"
+      - echo "Building Docker image..."
+      - docker build -t {{.LOCAL_IMAGE}} .
+
+  docker:push:
+    deps:
+      - docker:build
+    vars:
+      LOCAL_IMAGE: easyconvert-api
+    cmds:
+      - echo "Pushing Docker image to Artifact Registry..."
+      - task gcloud:auth
+      - gcloud auth configure-docker {{.LOCATION}}-docker.pkg.dev
+      - docker tag {{.LOCAL_IMAGE}} {{.LOCATION}}-docker.pkg.dev/{{.PROJECT_ID}}/{{.REPOSITORY}}/{{.TARGET_IMAGE}}:{{.TAG}}
+      - docker push {{.LOCATION}}-docker.pkg.dev/{{.PROJECT_ID}}/{{.REPOSITORY}}/{{.TARGET_IMAGE}}:{{.TAG}}
+
+  docker:deploy_gcloud:
+    vars:
+      TERRAFORM_PATH: terraform
+    cmds:
+      - echo "Listing images in GCP Artifact Registry..."
+      - |
+        gcloud artifacts docker images list \
+          {{.LOCATION}}-docker.pkg.dev/{{.PROJECT_ID}}/{{.REPOSITORY}}/{{.TARGET_IMAGE}} --include-tags
+      - |
+        cd {{.TERRAFORM_PATH}}
+        echo "Current directory -> $(pwd)"
+        echo "Deploying the new image to Google Cloud Run with Terraform..."
+        terraform apply
+      - task proxy:deploy
+    # deps:
+    #   - docker:push
+
+  docker:deploy_local:
+    desc: "Test Docker image locally with Docker compose" 
+    vars:
+      BUILD_IMAGE: "false"
+    cmds:
+      - echo "Testing Docker image locally with Docker compose..."
+      - |
+        if [ "{{.BUILD_IMAGE}}" = "true" ];
+          then task docker:build; 
+        else echo "Skipping docker build";
+        fi
+      - docker compose up -d
+
+  docker:remove:
+    desc: "Remove all containers"
+    cmds:
+      - docker compose down
+
+  proxy:deploy:
+    cmds:
+      - echo "Deploying Cloud Run Proxy..."
+      - |
+        gcloud run services proxy {{.CLOUD_RUN_NAME}} \
+          --project {{.PROJECT_ID}} \
+          --region {{.LOCATION}} \
+          --port {{.PROXY_PORT}}
+
