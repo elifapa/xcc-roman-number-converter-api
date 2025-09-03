@@ -3,7 +3,7 @@ on: workflow_dispatch
 
 jobs:
   dev_jobs:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
