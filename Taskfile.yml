@@ -20,7 +20,7 @@ tasks:
     desc: "Build Docker image"
     dir: ~/projects/xcc-roman-converter-api
     vars:
-      CURRENT_PWD: 
+      CURRENT_PWD:
         sh: pwd
       LOCAL_IMAGE: easyconvert-api
     cmds:
@@ -58,14 +58,14 @@ tasks:
     #   - docker:push
 
   docker:deploy_local:
-    desc: "Test Docker image locally with Docker compose" 
+    desc: "Test Docker image locally with Docker compose"
     vars:
       BUILD_IMAGE: "false"
     cmds:
       - echo "Testing Docker image locally with Docker compose..."
       - |
         if [ "{{.BUILD_IMAGE}}" = "true" ];
-          then task docker:build; 
+          then task docker:build;
         else echo "Skipping docker build";
         fi
       - docker compose up -d
@@ -83,4 +83,3 @@ tasks:
           --project {{.PROJECT_ID}} \
           --region {{.LOCATION}} \
           --port {{.PROXY_PORT}}
-

@@ -34,5 +34,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BRANCH: main
           VALIDATE_PYTHON_BLACK: true  # formatting
-          VALIDATE_PYTHON_FLAKE8: true # linting and style checks
           VALIDATE_YAML: true

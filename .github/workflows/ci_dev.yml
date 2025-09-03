@@ -9,6 +9,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        
+
       - name: Check env var GITHUB_CONTEXT
         run: echo "$GITHUB_CONTEXT"

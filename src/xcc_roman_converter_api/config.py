@@ -1,19 +1,20 @@
 from datetime import datetime
-import logging 
-import structlog 
+import logging
+import structlog
 
 PG_POST_TABLE = "post_responses_log"
 PG_SCHEMA = "api"
 
 PYTHON_TO_POSTGRES_DTYPES = {
-    int: 'BIGINT',
-    float: 'DOUBLE PRECISION',
-    str: 'TEXT',
-    bool: 'BOOLEAN',
-    bytes: 'BYTEA',
-    datetime: 'TIMESTAMP',
-    type(None): 'TEXT',  # Default for None/null values
+    int: "BIGINT",
+    float: "DOUBLE PRECISION",
+    str: "TEXT",
+    bool: "BOOLEAN",
+    bytes: "BYTEA",
+    datetime: "TIMESTAMP",
+    type(None): "TEXT",  # Default for None/null values
 }
+
 
 ## Logging configuration
 def configure_logging():
