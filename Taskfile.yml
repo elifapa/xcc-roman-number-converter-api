@@ -42,6 +42,14 @@ tasks:
 
   gcloud:wif:create-sa:
     desc: "Create service account for GitHub Actions"
+    vars:
+      ROLES: |
+        roles/run.admin
+        roles/storage.admin
+        roles/cloudsql.client
+        roles/secretmanager.secretAccessor
+        roles/artifactregistry.writer
+        roles/logging.logWriter
     cmds:
       - echo "👤 Creating service account..."
       - |
@@ -54,6 +62,18 @@ tasks:
             --display-name="GitHub Actions Service Account"
           echo "✅ Service account created"
         fi
+      - echo "🔐 Assigning roles to the service account..."
+      - |
+        # Convert roles to array and iterate
+        echo "{{.ROLES}}" | while read -r role; do
+          if [ -n "$role" ]; then
+            echo "Adding role: $role"
+            gcloud projects add-iam-policy-binding {{.PROJECT_ID}} \
+              --member="serviceAccount:{{.SERVICE_ACCOUNT_NAME}}@{{.PROJECT_ID}}.iam.gserviceaccount.com" \
+              --role="$role"
+          fi
+        done
+      - echo "✅ All permissions granted"
 
   gcloud:wif:bind-sa:
     desc: "Bind service account to workload identity pool"

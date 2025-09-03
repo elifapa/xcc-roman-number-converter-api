@@ -8,12 +8,21 @@ on:
 jobs:
   CI_jobs:
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: true
+
     permissions:
       contents: read
       id-token: write # Needed to request OIDC token from GitHub
       statuses: write # To report GitHub Actions status checks
+
+    env:
+      GITHUB_PR_SCHEMA: ${{ github.event.number }}
+      GCP_LOCATION: europe-west4
+      PROJECT_ID: ae-terraform-2025
+      REPOSITORY: ae-2025-registry
+      SERVICE: easyconvert-api
 
     steps:
       - name: Checkout
@@ -28,13 +37,14 @@ jobs:
           echo PR number: "$GITHUB_PR_SCHEMA"
           echo Changed files: '${{ steps.file_changes.outputs.all_changed_files}}'
 
-      # - name: Run Super-linter
-      #   uses: super-linter/super-linter@v8
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     DEFAULT_BRANCH: main
-      #     VALIDATE_PYTHON_BLACK: true  # formatting
-      #     VALIDATE_YAML: true
+      - name: Run Super-linter
+        uses: super-linter/super-linter@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: main
+          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_PYTHON_BLACK: true  # formatting
+          VALIDATE_YAML: true
 
       - name: Authenticate to Google Cloud with Workload Identity Federation
         id: auth_gcloud
@@ -48,3 +58,31 @@ jobs:
 
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
+
+      - name: Docker auth to Google Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{env.GCP_LOCATION}}
+          username: oauth2accesstoken
+          password: ${{ steps.auth_gcloud.outputs.access_token }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.GCP_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      # - name: Build and push
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: .
+      #     dockerfile: ./Dockerfile
+      #     push: true
+      #     tags: ${{ steps.meta.outputs.tags }}
+      #     labels: ${{ steps.meta.outputs.labels }}
