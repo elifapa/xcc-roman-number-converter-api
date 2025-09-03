@@ -1,7 +1,9 @@
 .env
 **/__pycache__/**
 .DS_Store
+.vscode/*
 **/.terraform/**
 *.tfstate
 *.tfstate.*
 **/terraform.tfvars
+github_context.json

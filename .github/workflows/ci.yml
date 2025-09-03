@@ -1,0 +1,34 @@
+name: CI_pipeline
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  CI_jobs:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Changed Files
+        id: file_changes
+        uses: tj-actions/changed-files@v46.0.3
+
+      - name: Print info
+        run: |
+          echo PR number: "$GITHUB_PR_SCHEMA"
+          echo Changed files: '${{ steps.file_changes.outputs.all_changed_files}}'
+
+      - name: Run Super-linter
+        uses: super-linter/super-linter@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: main
+          VALIDATE_PYTHON_BLACK: true  # formatting
+          VALIDATE_PYTHON_FLAKE8: true # linting and style checks
+          VALIDATE_YAML: true
