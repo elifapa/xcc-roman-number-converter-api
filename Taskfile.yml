@@ -8,6 +8,10 @@ vars:
   TAG: latest
   PROXY_PORT: 8000
   CLOUD_RUN_NAME: easyconvert-api
+  SERVICE_ACCOUNT_NAME: elif-github-actions-sa
+  POOL_NAME: elif-github-actions-pool
+  PROVIDER_NAME: github-provider
+  GITHUB_USER: elifapa
 
 tasks:
   gcloud:auth:
@@ -15,6 +19,75 @@ tasks:
     cmds:
       - echo "Authenticating with Google Cloud..."
       - gcloud auth application-default login
+
+  gcloud:wif:setup:
+    desc: "Create Workload Identity Pool and Provider"
+    cmds:
+      - echo "Setting up Workload Identity Pool and Provider..."
+      - |
+        gcloud iam workload-identity-pools create {{.POOL_NAME}} \
+          --location="global" \
+          --display-name="Elif's Workload Identity Pool" \
+          --description="Pool for GitHub Actions federation" \
+          --project={{.PROJECT_ID}}
+      - |
+        gcloud iam workload-identity-pools providers create-oidc {{.PROVIDER_NAME}} \
+          --project={{.PROJECT_ID}} \
+          --location="global" \
+          --workload-identity-pool={{.POOL_NAME}} \
+          --display-name="GitHub Provider" \
+          --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" \
+          --attribute-condition="assertion.repository_owner=='elifapa'" \
+          --issuer-uri="https://token.actions.githubusercontent.com"
+
+  gcloud:wif:create-sa:
+    desc: "Create service account for GitHub Actions"
+    cmds:
+      - echo "👤 Creating service account..."
+      - |
+        if gcloud iam service-accounts describe {{.SERVICE_ACCOUNT_NAME}}@{{.PROJECT_ID}}.iam.gserviceaccount.com \
+          --project={{.PROJECT_ID}} >/dev/null 2>&1; then
+          echo "Service account {{.SERVICE_ACCOUNT_NAME}} already exists, skipping creation"
+        else
+          gcloud iam service-accounts create {{.SERVICE_ACCOUNT_NAME}} \
+            --project={{.PROJECT_ID}} \
+            --display-name="GitHub Actions Service Account"
+          echo "✅ Service account created"
+        fi
+
+  gcloud:wif:bind-sa:
+    desc: "Bind service account to workload identity pool"
+    deps:
+      - gcloud:wif:create-sa
+    vars:
+      PROJECT_NUMBER:
+        sh: gcloud projects describe {{.PROJECT_ID}} --format="value(projectNumber)"
+    cmds:
+      - echo "🔗 Binding service account to workload identity pool..."
+      - |
+        gcloud iam service-accounts add-iam-policy-binding \
+          {{.SERVICE_ACCOUNT_NAME}}@{{.PROJECT_ID}}.iam.gserviceaccount.com \
+          --project={{.PROJECT_ID}} \
+          --role=roles/iam.workloadIdentityUser \
+          --member="principalSet://iam.googleapis.com/projects/{{.PROJECT_NUMBER}}/locations/global/workloadIdentityPools/{{.POOL_NAME}}/attribute.repository_owner/{{.GITHUB_USER}}"
+
+        echo "✅ Service account binding completed"
+
+
+  gcloud:wif:get-provider-info:
+    desc: Get workload identity provider information for GitHub Actions
+    vars:
+      PROJECT_NUMBER:
+        sh: gcloud projects describe {{.PROJECT_ID}} --format="value(projectNumber)"
+    cmds:
+      - echo "📋 Getting provider information..."
+      - |
+        echo "🎯 Use these values in your GitHub Actions workflow:"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "workload_identity_provider: projects/{{.PROJECT_NUMBER}}/locations/global/workloadIdentityPools/{{.POOL_NAME}}/providers/{{.PROVIDER_NAME}}"
+        echo "service_account: {{.SERVICE_ACCOUNT_NAME}}@{{.PROJECT_ID}}.iam.gserviceaccount.com"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
 
   docker:build:
     desc: "Build Docker image"

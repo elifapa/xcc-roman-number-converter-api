@@ -870,17 +870,23 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
-    { name = "pre-commit" },
     { name = "psycopg", extra = ["binary"] },
     { name = "structlog" },
     { name = "xcc-roman-converter" },
 ]
 
+[package.dev-dependencies]
+ci = [
+    { name = "pre-commit" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
-    { name = "pre-commit", specifier = ">=4.3.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.9" },
     { name = "structlog", specifier = ">=25.4.0" },
     { name = "xcc-roman-converter", git = "https://github.com/elifapa/xcc-roman-number-converter.git" },
 ]
+
+[package.metadata.requires-dev]
+ci = [{ name = "pre-commit", specifier = ">=4.3.0" }]
