@@ -1,4 +1,8 @@
 terraform {
+  backend "gcs" {
+    bucket = "elifapa-terraform-state"
+    prefix = "env/dev/terraform/state"
+  }
   required_providers {
     google = {
       source = "hashicorp/google"

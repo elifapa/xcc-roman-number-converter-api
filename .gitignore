@@ -3,7 +3,10 @@
 .DS_Store
 .vscode/*
 **/.terraform/**
+*.tfvars
 *.tfstate
 *.tfstate.*
 **/terraform.tfvars
+terraform/.terraform.lock.hcl
 github_context.json
+.venv/

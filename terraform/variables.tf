@@ -26,6 +26,7 @@ variable "artifact_image_tag" {
 
 variable "db_user" {
   type = string
+  sensitive = true
 }
 
 variable "db_password" {
@@ -35,6 +36,7 @@ variable "db_password" {
 
 variable "db_name" {
   type = string
+  sensitive = true
 }
 
 variable "db_port" {

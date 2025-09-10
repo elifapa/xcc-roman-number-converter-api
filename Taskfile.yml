@@ -20,6 +20,24 @@ tasks:
       - echo "Authenticating with Google Cloud..."
       - gcloud auth application-default login
 
+  gcloud:upload_file:
+    desc: "Upload a file to Google Cloud Storage"
+    vars:
+      GCS_BUCKET:  elifapa-terraform-state
+      GCS_PREFIX: env/dev/terraform/state
+      TFVARS_FILE: dev.tfvars
+    preconditions:
+      - sh: test -f "{{.TFVARS_FILE}}"
+        msg: "File {{.TFVARS_FILE}} not found."
+    deps:
+      - gcloud:auth
+    cmds:
+      - |
+        DEST="gs://{{.GCS_BUCKET}}/{{.GCS_PREFIX}}/{{.TFVARS_FILE}}"
+        echo "Uploading {{.TFVARS_FILE}} -> ${DEST}"
+        gcloud storage cp "{{.TFVARS_FILE}}" "${DEST}"
+        echo "Done."
+
   gcloud:wif:setup:
     desc: "Create Workload Identity Pool and Provider"
     cmds:
