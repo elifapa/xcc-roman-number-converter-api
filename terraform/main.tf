@@ -68,12 +68,12 @@ resource "google_sql_user" "default_user" {
 
 
 resource "google_cloud_run_v2_service" "easyconvert-api-service" {
-  name     = "easyconvert-api"
+  name     = var.cloud_run_service_name
   location = var.location
   ingress = "INGRESS_TRAFFIC_ALL"
   template {
     containers {
-      name = "easyconvert-api"
+      name = var.cloud_run_service_name
       image = data.google_artifact_registry_docker_image.my_image.self_link #"${var.location}-docker.pkg.dev/${data.google_project.ae_project.project_id}/${data.google_artifact_registry_docker_image.my_image.repository_id}/easyconvert-api:latest"
       ports {
         container_port = var.cloud_run_proxy_port

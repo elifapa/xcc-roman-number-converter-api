@@ -20,10 +20,11 @@ jobs:
     env:
       GITHUB_PR_SCHEMA: ${{ github.event.number }}
       GITHUB_LAST_COMMIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-      GCP_LOCATION: europe-west4
-      PROJECT_ID: ae-terraform-2025
-      REPOSITORY: ae-2025-registry
-      SERVICE: easyconvert-api
+      GCP_LOCATION: ${{secrets.GCP_LOCATION}}
+      GCP_PROJECT_ID: ${{secrets.GCP_PROJECT_ID}}
+      GCP_REPOSITORY: ${{secrets.GCP_REPOSITORY}}
+      GCP_CLOUD_RUN_SERVICE_NAME: ${{secrets.GCP_CLOUD_RUN_SERVICE_NAME}}
+      IMAGE_NAME: ${{secrets.IMAGE_NAME}}
 
     steps:
       - name: Checkout
@@ -40,14 +41,11 @@ jobs:
           echo last commit sha: "$GITHUB_LAST_COMMIT_SHA"
           echo Changed files: '${{ steps.file_changes.outputs.all_changed_files}}'
 
-      - name: Run Super-linter
-        uses: super-linter/super-linter@v8
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BRANCH: main
-          VALIDATE_ALL_CODEBASE: false
-          VALIDATE_PYTHON_BLACK: true  # formatting
-          VALIDATE_YAML: true
+      - name: Run pre-commit on changed files
+        if: steps.file_changes.outputs.any_changed == 'true'
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --files ${{ steps.file_changes.outputs.all_changed_files }}
 
       - name: Authenticate to Google Cloud with Workload Identity Federation
         id: auth_gcloud
@@ -74,19 +72,14 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.GCP_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}
+          images: ${{ env.GCP_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha
 
-      - name: Print tags & labels
-        run: |
-          echo Docker tags: ${{ steps.meta.outputs.tags }}
-          echo Docker labels: ${{ steps.meta.outputs.labels }}
-
-      # - name: Build and push
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: ${{ steps.meta.outputs.labels }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
