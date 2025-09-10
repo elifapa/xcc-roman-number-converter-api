@@ -65,9 +65,12 @@ tasks:
         roles/run.admin
         roles/storage.admin
         roles/cloudsql.client
+        roles/cloudsql.admin
         roles/secretmanager.secretAccessor
+        roles/artifactregistry.reader
         roles/artifactregistry.writer
         roles/logging.logWriter
+        roles/serviceusage.serviceUsageAdmin
     cmds:
       - echo "👤 Creating service account..."
       - |
@@ -95,8 +98,8 @@ tasks:
 
   gcloud:wif:bind-sa:
     desc: "Bind service account to workload identity pool"
-    deps:
-      - gcloud:wif:create-sa
+    # deps:
+    #   - gcloud:wif:create-sa
     vars:
       PROJECT_NUMBER:
         sh: gcloud projects describe {{.PROJECT_ID}} --format="value(projectNumber)"
@@ -108,8 +111,7 @@ tasks:
           --project={{.PROJECT_ID}} \
           --role=roles/iam.workloadIdentityUser \
           --member="principalSet://iam.googleapis.com/projects/{{.PROJECT_NUMBER}}/locations/global/workloadIdentityPools/{{.POOL_NAME}}/attribute.repository_owner/{{.GITHUB_USER}}"
-
-        echo "✅ Service account binding completed"
+      - echo "✅ Service account binding completed"
 
 
   gcloud:wif:get-provider-info:

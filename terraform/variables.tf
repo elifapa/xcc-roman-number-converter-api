@@ -3,6 +3,10 @@ variable "location" {
   default = "europe-west4"
 }
 
+variable "gcp_sa_email" {
+  type = string
+}
+
 variable "cloud_run_proxy_port" {
   type = number
   default = 8000

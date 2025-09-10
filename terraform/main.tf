@@ -145,6 +145,7 @@ resource "google_cloud_run_v2_service_iam_binding" "private_access" {
   members = [
     # "allUsers",
     "user:eapaydin@xccelerated.io",
+    "serviceAccount:${var.gcp_sa_email}"
   ]
 }
 
