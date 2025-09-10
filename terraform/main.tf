@@ -18,7 +18,7 @@ data "google_project" "ae_project" {
 data "google_artifact_registry_docker_image" "my_image" {
   location      = var.location
   repository_id = var.artifact_reg_repo
-  image_name    = "${var.artifact_image_name}:latest"
+  image_name    = "${var.artifact_image_name}:${var.artifact_image_tag}"
 }
 
 locals {

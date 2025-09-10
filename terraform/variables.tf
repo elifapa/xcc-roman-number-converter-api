@@ -20,6 +20,10 @@ variable "artifact_image_name" {
   type = string
 }
 
+variable "artifact_image_tag" {
+  type = string
+}
+
 variable "db_user" {
   type = string
 }

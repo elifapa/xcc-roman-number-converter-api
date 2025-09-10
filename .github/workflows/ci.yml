@@ -19,6 +19,7 @@ jobs:
 
     env:
       GITHUB_PR_SCHEMA: ${{ github.event.number }}
+      GITHUB_LAST_COMMIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       GCP_LOCATION: europe-west4
       PROJECT_ID: ae-terraform-2025
       REPOSITORY: ae-2025-registry
@@ -34,7 +35,9 @@ jobs:
 
       - name: Print info
         run: |
+          echo Event name: ${{ github.event_name }}
           echo PR number: "$GITHUB_PR_SCHEMA"
+          echo last commit sha: "$GITHUB_LAST_COMMIT_SHA"
           echo Changed files: '${{ steps.file_changes.outputs.all_changed_files}}'
 
       - name: Run Super-linter
@@ -73,17 +76,17 @@ jobs:
         with:
           images: ${{ env.GCP_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha
+
+      - name: Print tags & labels
+        run: |
+          echo Docker tags: ${{ steps.meta.outputs.tags }}
+          echo Docker labels: ${{ steps.meta.outputs.labels }}
 
       # - name: Build and push
       #   uses: docker/build-push-action@v6
       #   with:
       #     context: .
-      #     dockerfile: ./Dockerfile
       #     push: true
       #     tags: ${{ steps.meta.outputs.tags }}
       #     labels: ${{ steps.meta.outputs.labels }}
