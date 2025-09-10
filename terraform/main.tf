@@ -70,6 +70,19 @@ resource "google_sql_user" "default_user" {
   password = var.db_password
 }
 
+# Enable Cloud SQL Admin API in the project
+resource "google_project_service" "cloud_sql_admin" {
+  project = data.google_project.ae_project.project_id
+  service = "sqladmin.googleapis.com"
+  disable_on_destroy = true
+}
+
+# Enable Artifact Registry API
+resource "google_project_service" "artifact_registry" {
+  project = data.google_project.ae_project.project_id
+  service = "artifactregistry.googleapis.com"
+  disable_on_destroy = true
+}
 
 resource "google_cloud_run_v2_service" "easyconvert-api-service" {
   name     = var.cloud_run_service_name
@@ -120,20 +133,7 @@ resource "google_cloud_run_v2_service" "easyconvert-api-service" {
     }
   }
   deletion_protection = false
-}
-
-# Enable Cloud SQL Admin API in the project
-resource "google_project_service" "cloud_sql_admin" {
-  project = data.google_project.ae_project.project_id
-  service = "sqladmin.googleapis.com"
-  disable_on_destroy = true
-}
-
-# Enable Artifact Registry API
-resource "google_project_service" "artifact_registry" {
-  project = data.google_project.ae_project.project_id
-  service = "artifactregistry.googleapis.com"
-  disable_on_destroy = true
+  depends_on = [ google_project_service.cloud_sql_admin, google_project_service.artifact_registry ]
 }
 
 # Bind IAM policy to Cloud Run to allow access only to my user
