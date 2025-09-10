@@ -111,8 +111,24 @@ jobs:
           TF_VAR_db_name: "easyconvert"
           TF_VAR_artifact_reg_repo: ${{env.GCP_REPOSITORY}}
           TF_VAR_artifact_image_name: ${{env.IMAGE_NAME}}
-          TF_VAR_artifact_image_tag: ${{env.IMAGE_NAME}}
+          TF_VAR_artifact_image_tag: ${{ steps.meta.outputs.version }}
           TF_VAR_cloud_run_proxy_port: 8000
           TF_VAR_cloud_run_service_name: ${{env.GCP_CLOUD_RUN_SERVICE_NAME}}
         run: |
           terraform plan -no-color -input=false
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        env:
+          TF_VAR_db_user: ${{secrets.GCP_PG_DB_USER}}
+          TF_VAR_db_password: ${{secrets.GCP_PG_DB_PWD}}
+          TF_VAR_cache_enabled: "False"
+          TF_VAR_db_port: 5432
+          TF_VAR_db_name: "easyconvert"
+          TF_VAR_artifact_reg_repo: ${{env.GCP_REPOSITORY}}
+          TF_VAR_artifact_image_name: ${{env.IMAGE_NAME}}
+          TF_VAR_artifact_image_tag: ${{ steps.meta.outputs.version }}
+          TF_VAR_cloud_run_proxy_port: 8000
+          TF_VAR_cloud_run_service_name: ${{env.GCP_CLOUD_RUN_SERVICE_NAME}}
+        run: |
+          terraform apply -auto-approve -input=false
