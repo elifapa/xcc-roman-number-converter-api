@@ -4,11 +4,19 @@ on: workflow_dispatch
 jobs:
   dev_jobs:
     runs-on: ubuntu-latest
+
+    environment: dev
+
     env:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Environment
+        run: |
+          echo Running in environment: ${{env.environment}}
+          echo PG_USER: ${{env.PG_USER}}
 
       - name: Check env var GITHUB_CONTEXT
         run: echo "$GITHUB_CONTEXT"
