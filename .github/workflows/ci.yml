@@ -50,11 +50,9 @@ jobs:
       - name: Authenticate to Google Cloud with Workload Identity Federation
         id: auth_gcloud
         uses: google-github-actions/auth@v2
-        env:
-          GCP_WIF_SA: ${{secrets.GCP_WIF_SA}}
         with:
           workload_identity_provider: 'projects/264268171873/locations/global/workloadIdentityPools/elif-github-actions-pool/providers/github-provider'
-          service_account: ${{env.GCP_WIF_SA}}
+          service_account: ${{secrets.GCP_WIF_SA}}
           token_format: 'access_token'  # Outputs access_token
 
       - name: 'Set up Cloud SDK'
@@ -89,16 +87,14 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: IAM binding for Github SA
-        env:
-          GCP_WIF_SA: ${{secrets.GCP_WIF_SA}}
-        run: |
-          echo "🔗 Binding service account to act as Cloud Run's runtime SA..."
-          PROJECT_NUMBER=$(gcloud projects describe ${{ env.GCP_PROJECT_ID }} --format="value(projectNumber)")
-          gcloud iam service-accounts add-iam-policy-binding \
-            {{.PROJECT_NUMBER}}-compute@developer.gserviceaccount.com \
-            --member="serviceAccount:${{secrets.GCP_WIF_SA}}" \
-            --role="roles/iam.serviceAccountUser"
+      # - name: IAM binding for Github SA
+      #   run: |
+      #     echo "🔗 Binding service account to act as Cloud Run's runtime SA..."
+      #     PROJECT_NUMBER=$(gcloud projects describe ${{ env.GCP_PROJECT_ID }} --format="value(projectNumber)")
+      #     gcloud iam service-accounts add-iam-policy-binding \
+      #       ${PROJECT_NUMBER}-compute@developer.gserviceaccount.com \
+      #       --member="serviceAccount:${{secrets.GCP_WIF_SA}}" \
+      #       --role="roles/iam.serviceAccountUser"
 
       - name: Setup Terraform
         id: setup_terraform

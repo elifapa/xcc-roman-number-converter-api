@@ -25,6 +25,9 @@ data "google_artifact_registry_docker_image" "my_image" {
   image_name    = "${var.artifact_image_name}:${var.artifact_image_tag}"
 }
 
+data "google_compute_default_service_account" "default" {
+}
+
 locals {
   onprem = ["77.169.112.68"]
   wibaut_xebia = ["37.17.221.89"]
@@ -84,6 +87,13 @@ resource "google_project_service" "artifact_registry" {
   disable_on_destroy = true
 }
 
+# IAM binding for GitHub Service Account to act as Cloud Run's runtime SA
+resource "google_service_account_iam_member" "github_sa_service_account_user" {
+  service_account_id = data.google_compute_default_service_account.default.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.gcp_sa_email}"
+}
+
 resource "google_cloud_run_v2_service" "easyconvert-api-service" {
   name     = var.cloud_run_service_name
   location = var.location
@@ -133,7 +143,11 @@ resource "google_cloud_run_v2_service" "easyconvert-api-service" {
     }
   }
   deletion_protection = false
-  depends_on = [ google_project_service.cloud_sql_admin, google_project_service.artifact_registry ]
+  depends_on = [
+    google_project_service.cloud_sql_admin,
+    google_project_service.artifact_registry,
+    google_service_account_iam_member.github_sa_service_account_user
+  ]
 }
 
 # Bind IAM policy to Cloud Run to allow access only to my user
