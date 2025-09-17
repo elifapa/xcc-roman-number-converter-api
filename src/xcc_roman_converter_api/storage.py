@@ -5,6 +5,8 @@ from contextlib import contextmanager
 
 
 class PostgresStorage:
+    """API backend storage using PostgreSQL with psycopg."""
+
     def __init__(
         self,
         host: str = os.getenv("DB_HOST", "localhost"),
