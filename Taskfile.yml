@@ -7,7 +7,7 @@ vars:
   TARGET_IMAGE: easyconvert-api
   TAG: latest
   PROXY_PORT: 8000
-  CLOUD_RUN_NAME: easyconvert-api
+  CLOUD_RUN_NAME: easyconvert-api-dev
   SERVICE_ACCOUNT_NAME: elif-github-actions-sa
   POOL_NAME: elif-github-actions-pool
   PROVIDER_NAME: github-provider

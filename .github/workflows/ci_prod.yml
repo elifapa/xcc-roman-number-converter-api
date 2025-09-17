@@ -1,0 +1,138 @@
+name: Deploy to Prod
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: 'Source image tag to promote (e.g., sha-dc02900)'
+        required: true
+        default: 'latest'
+
+jobs:
+  promote_to_prod:
+    runs-on: ubuntu-latest
+
+    environment: prod
+
+    strategy:
+      fail-fast: true
+
+    permissions:
+      contents: read
+      id-token: write # Needed to request OIDC token from GitHub
+      statuses: write # To report GitHub Actions status checks
+
+    env:
+      GCP_LOCATION: ${{secrets.GCP_LOCATION}}
+      GCP_PROJECT_ID: ${{secrets.GCP_PROJECT_ID}}
+      GCP_REPOSITORY: ${{secrets.GCP_REPOSITORY}}
+      GCP_CLOUD_RUN_SERVICE_NAME: ${{secrets.GCP_CLOUD_RUN_SERVICE_NAME}}
+      IMAGE_NAME: ${{secrets.IMAGE_NAME}}
+      SOURCE_TAG: ${{ inputs.source_tag }}
+      PROD_TAG: "prod-latest"
+
+      # get the latest merge commit sha, get the tag from registry, add latest tag to that image
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print environment
+        run: "echo Running in environment: ${{vars.environment}}"
+
+      - name: Authenticate to Google Cloud with Workload Identity Federation
+        id: auth_gcloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/264268171873/locations/global/workloadIdentityPools/elif-github-actions-pool/providers/github-provider'
+          service_account: ${{secrets.GCP_WIF_SA}}
+          token_format: 'access_token'  # Outputs access_token
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'Use gcloud CLI'
+        run: 'gcloud info'
+
+      - name: Validate source image exists
+        run: |
+          IMAGE_PATH="${{ env.GCP_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.IMAGE_NAME }}"
+
+          echo "Checking if source image exists: ${IMAGE_PATH}:${{ env.SOURCE_TAG }}"
+
+          if ! gcloud artifacts docker images describe "${IMAGE_PATH}:${{ env.SOURCE_TAG }}" --quiet; then
+            echo "Source image ${IMAGE_PATH}:${{ env.SOURCE_TAG }} does not exist!"
+            exit 1
+          fi
+
+          echo "Source image validated successfully"
+
+      # - name: Generate production tags
+      #   id: prod_tags
+      #   run: |
+      #     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+      #     PROD_TAG="prod-${TIMESTAMP}"
+
+      #     echo "PROD_TAG=${PROD_TAG}" >> $GITHUB_ENV
+      #     echo "TIMESTAMP=${TIMESTAMP}" >> $GITHUB_ENV
+
+      #     echo "Generated production tag: ${PROD_TAG}"
+
+      - name: Tag image for production
+        run: |
+          IMAGE_PATH="${{ env.GCP_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.IMAGE_NAME }}"
+
+          echo "Adding ${{env.PROD_TAG}} tag"
+          gcloud artifacts docker tags add \
+            "${IMAGE_PATH}:${{ env.SOURCE_TAG }}" \
+            "${IMAGE_PATH}:${{env.PROD_TAG}}"
+
+          echo "Successfully tagged production image"
+
+      - name: Setup Terraform
+        id: setup_terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init -- ${{vars.ENVIRONMENT}}
+        working-directory: ./terraform
+        env:
+          TF_STATE_BUCKET: ${{secrets.TF_STATE_BUCKET}}
+          TF_STATE_BUCKET_PREFIX: "env/${{vars.environment}}/terraform/state"
+        run: |
+          echo Using terraform state bucket '${{ env.TF_STATE_BUCKET }}', prefix '${{env.TF_STATE_BUCKET_PREFIX}}'
+          terraform init \
+            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+            -backend-config="prefix=${{env.TF_STATE_BUCKET_PREFIX}}"
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        env:
+          TF_VAR_gcp_sa_email: ${{secrets.GCP_WIF_SA}}
+          TF_VAR_db_user: ${{secrets.GCP_PG_DB_USER}}
+          TF_VAR_db_password: ${{secrets.GCP_PG_DB_PWD}}
+          TF_VAR_cache_enabled: "False"
+          TF_VAR_db_port: 5432
+          TF_VAR_db_name: "easyconvert"
+          TF_VAR_artifact_reg_repo: ${{env.GCP_REPOSITORY}}
+          TF_VAR_artifact_image_name: ${{env.IMAGE_NAME}}
+          TF_VAR_artifact_image_tag: ${{ env.PROD_TAG }}
+          TF_VAR_cloud_run_proxy_port: 8000
+          TF_VAR_cloud_run_service_name: ${{env.GCP_CLOUD_RUN_SERVICE_NAME}}
+        run: |
+          terraform plan -no-color -input=false
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        env:
+          TF_VAR_gcp_sa_email: ${{secrets.GCP_WIF_SA}}
+          TF_VAR_db_user: ${{secrets.GCP_PG_DB_USER}}
+          TF_VAR_db_password: ${{secrets.GCP_PG_DB_PWD}}
+          TF_VAR_cache_enabled: "False"
+          TF_VAR_db_port: 5432
+          TF_VAR_db_name: "easyconvert"
+          TF_VAR_artifact_reg_repo: ${{env.GCP_REPOSITORY}}
+          TF_VAR_artifact_image_name: ${{env.IMAGE_NAME}}
+          TF_VAR_artifact_image_tag: ${{ env.PROD_TAG }}
+          TF_VAR_cloud_run_proxy_port: 8000
+          TF_VAR_cloud_run_service_name: ${{env.GCP_CLOUD_RUN_SERVICE_NAME}}
+        run: |
+          terraform apply -auto-approve -input=false
