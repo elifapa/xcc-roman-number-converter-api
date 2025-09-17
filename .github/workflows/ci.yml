@@ -34,12 +34,20 @@ jobs:
         id: file_changes
         uses: tj-actions/changed-files@v46.0.3
 
+      - name: Changed Files in src
+        id: src_changes
+        uses: tj-actions/changed-files@v46.0.3
+        with:
+          files: |
+            src/**
+
       - name: Print info
         run: |
           echo Event name: ${{ github.event_name }}
           echo PR number: "$GITHUB_PR_SCHEMA"
           echo last commit sha: "$GITHUB_LAST_COMMIT_SHA"
           echo Changed files: '${{ steps.file_changes.outputs.all_changed_files}}'
+          echo Has changes in src/ files: '${{ steps.src_changes.outputs.any_changed }}'
 
       - name: Run pre-commit on changed files
         if: steps.file_changes.outputs.any_changed == 'true'
@@ -81,20 +89,36 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v6
+        if: steps.src_changes.outputs.any_changed == 'true'
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      # - name: IAM binding for Github SA
-      #   run: |
-      #     echo "🔗 Binding service account to act as Cloud Run's runtime SA..."
-      #     PROJECT_NUMBER=$(gcloud projects describe ${{ env.GCP_PROJECT_ID }} --format="value(projectNumber)")
-      #     gcloud iam service-accounts add-iam-policy-binding \
-      #       ${PROJECT_NUMBER}-compute@developer.gserviceaccount.com \
-      #       --member="serviceAccount:${{secrets.GCP_WIF_SA}}" \
-      #       --role="roles/iam.serviceAccountUser"
+      # Decide which tag Terraform should deploy:
+      # - If src changed: use the new sha tag from metadata
+      # - If not: resolve the latest existing tag from Artifact Registry
+      - name: Resolve image tag to deploy
+        id: resolve_tag
+        run: |
+          if [ "${{ steps.src_changes.outputs.any_changed }}" = "true" ]; then
+            echo "IMAGE_TAG=${{ steps.meta.outputs.version }}" >> $GITHUB_ENV
+            echo "Using new image tag from sha."
+          else
+            echo "No src changes; resolving latest existing image tag..."
+            IMAGE_PATH="${{ env.GCP_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.IMAGE_NAME }}"
+            LATEST_TAG=$(gcloud artifacts docker tags list "$IMAGE_PATH" \
+              --location="${{ env.GCP_LOCATION }}" \
+              --format="value(tag, updateTime)  \
+              --sort-by="~updateTime" | head -n 1 | awk '{print $1}')
+            if [ -z "$LATEST_TAG" ]; then
+              echo "No tags found in Artifact Registry; defaulting to current sha tag."
+              LATEST_TAG="latest"
+            fi
+            echo "IMAGE_TAG=$LATEST_TAG" >> $GITHUB_ENV
+            echo "Resolved IMAGE_TAG=$LATEST_TAG"
+          fi
 
       - name: Setup Terraform
         id: setup_terraform
@@ -121,7 +145,7 @@ jobs:
           TF_VAR_db_name: "easyconvert"
           TF_VAR_artifact_reg_repo: ${{env.GCP_REPOSITORY}}
           TF_VAR_artifact_image_name: ${{env.IMAGE_NAME}}
-          TF_VAR_artifact_image_tag: ${{ steps.meta.outputs.version }}
+          TF_VAR_artifact_image_tag: ${{ env.IMAGE_TAG }}
           TF_VAR_cloud_run_proxy_port: 8000
           TF_VAR_cloud_run_service_name: ${{env.GCP_CLOUD_RUN_SERVICE_NAME}}
         run: |
@@ -138,7 +162,7 @@ jobs:
           TF_VAR_db_name: "easyconvert"
           TF_VAR_artifact_reg_repo: ${{env.GCP_REPOSITORY}}
           TF_VAR_artifact_image_name: ${{env.IMAGE_NAME}}
-          TF_VAR_artifact_image_tag: ${{ steps.meta.outputs.version }}
+          TF_VAR_artifact_image_tag: ${{ env.IMAGE_TAG }}
           TF_VAR_cloud_run_proxy_port: 8000
           TF_VAR_cloud_run_service_name: ${{env.GCP_CLOUD_RUN_SERVICE_NAME}}
         run: |

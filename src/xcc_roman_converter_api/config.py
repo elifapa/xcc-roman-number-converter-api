@@ -16,7 +16,7 @@ PYTHON_TO_POSTGRES_DTYPES = {
 }
 
 
-## Logging configuration
+## Logging configuration with structlog
 def configure_logging():
     """
     Configures structlog for structured logging.
