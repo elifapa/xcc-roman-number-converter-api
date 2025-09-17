@@ -84,18 +84,6 @@ jobs:
           tags: |
             type=sha
 
-      - name: Print short sha tag
-        run: echo "Tag is ${{ steps.meta.outputs.version }}"
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        if: steps.src_changes.outputs.any_changed == 'true'
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
       # Decide which tag Terraform should deploy:
       # - If src changed: use the new sha tag from metadata
       # - If not: resolve the latest existing tag from Artifact Registry
@@ -119,6 +107,20 @@ jobs:
             echo "IMAGE_TAG=$LATEST_TAG" >> $GITHUB_ENV
             echo "Resolved IMAGE_TAG=$LATEST_TAG"
           fi
+
+      - name: Print tags
+        run: |
+          echo "Short sha commit is ${{ steps.meta.outputs.version }}"
+          echo "Recalculated image tag is ${{ env.IMAGE_TAG }}"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        if: steps.src_changes.outputs.any_changed == 'true'
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Setup Terraform
         id: setup_terraform
