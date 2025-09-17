@@ -106,6 +106,7 @@ jobs:
       - name: Terraform Plan
         working-directory: ./terraform
         env:
+          TF_VAR_environment: ${{vars.environment}}
           TF_VAR_gcp_sa_email: ${{secrets.GCP_WIF_SA}}
           TF_VAR_db_user: ${{secrets.GCP_PG_DB_USER}}
           TF_VAR_db_password: ${{secrets.GCP_PG_DB_PWD}}
@@ -123,6 +124,7 @@ jobs:
       - name: Terraform Apply
         working-directory: ./terraform
         env:
+          TF_VAR_environment: ${{vars.environment}}
           TF_VAR_gcp_sa_email: ${{secrets.GCP_WIF_SA}}
           TF_VAR_db_user: ${{secrets.GCP_PG_DB_USER}}
           TF_VAR_db_password: ${{secrets.GCP_PG_DB_PWD}}
