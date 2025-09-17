@@ -110,10 +110,10 @@ jobs:
             IMAGE_PATH="${{ env.GCP_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_REPOSITORY }}/${{ env.IMAGE_NAME }}"
             LATEST_TAG=$(gcloud artifacts docker tags list "$IMAGE_PATH" \
               --location="${{ env.GCP_LOCATION }}" \
-              --format="value(tag, updateTime)  \
+              --format="value(tag, updateTime)"  \
               --sort-by="~updateTime" | head -n 1 | awk '{print $1}')
             if [ -z "$LATEST_TAG" ]; then
-              echo "No tags found in Artifact Registry; defaulting to current sha tag."
+              echo "No tags found in Artifact Registry; defaulting to <latest> tag."
               LATEST_TAG="latest"
             fi
             echo "IMAGE_TAG=$LATEST_TAG" >> $GITHUB_ENV

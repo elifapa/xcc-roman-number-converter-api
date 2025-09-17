@@ -21,9 +21,6 @@ class Payload(BaseModel):
     timestamp: str
 
 
-# sys.process["easyconvert"]
-
-
 @app.get("/")
 async def root():
     return {"message": "Hello Elif!"}
