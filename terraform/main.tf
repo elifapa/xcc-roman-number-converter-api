@@ -45,6 +45,7 @@ resource "google_sql_database_instance" "postgres_instance" {
     tier = "db-custom-1-3840"  # machine type
     ip_configuration {
         ipv4_enabled = true # public IP
+        ssl_mode = "ENCRYPTED_ONLY"
         dynamic "authorized_networks" {
             for_each = local.onprem
             iterator = onprem

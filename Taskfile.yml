@@ -71,6 +71,7 @@ tasks:
         roles/artifactregistry.writer
         roles/logging.logWriter
         roles/serviceusage.serviceUsageAdmin
+        roles/iam.serviceAccountAdmin
     cmds:
       - echo "👤 Creating service account..."
       - |
