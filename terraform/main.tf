@@ -25,12 +25,10 @@ data "google_artifact_registry_docker_image" "my_image" {
   image_name    = "${var.artifact_image_name}:${var.artifact_image_tag}"
 }
 
-data "google_compute_default_service_account" "default" {
-}
-
 locals {
   onprem = ["77.169.112.68"]
   wibaut_xebia = ["37.17.221.89"]
+  default_compute_sa_email = "${data.google_project.ae_project.number}-compute@developer.gserviceaccount.com"
 }
 
 resource "random_id" "db_name_suffix" {
@@ -89,7 +87,7 @@ resource "google_project_service" "artifact_registry" {
 
 # IAM binding for GitHub Service Account to act as Cloud Run's runtime SA
 resource "google_service_account_iam_member" "github_sa_service_account_user" {
-  service_account_id = data.google_compute_default_service_account.default.name
+  service_account_id = "projects/${data.google_project.ae_project.project_id}/serviceAccounts/${local.default_compute_sa_email}"
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${var.gcp_sa_email}"
 }
