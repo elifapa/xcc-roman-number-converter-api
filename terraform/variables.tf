@@ -3,6 +3,10 @@ variable "location" {
   default = "europe-west4"
 }
 
+variable "environment" {
+  type = string
+}
+
 variable "gcp_sa_email" {
   type = string
 }

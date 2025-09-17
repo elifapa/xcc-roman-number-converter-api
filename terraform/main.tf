@@ -36,7 +36,7 @@ resource "random_id" "db_name_suffix" {
 }
 
 resource "google_sql_database_instance" "postgres_instance" {
-  name             = "elif-postgres-instance-${random_id.db_name_suffix.hex}"
+  name             = "elif-postgres-instance-${random_id.db_name_suffix.hex}-${var.environment}"
   project          = data.google_project.ae_project.project_id
   region           = var.location
   database_version = "POSTGRES_17"  # match Postgres 17.0 image version
@@ -94,7 +94,7 @@ resource "google_service_account_iam_member" "github_sa_service_account_user" {
 }
 
 resource "google_cloud_run_v2_service" "easyconvert-api-service" {
-  name     = var.cloud_run_service_name
+  name     = "${var.cloud_run_service_name}-${var.environment}"
   location = var.location
   ingress = "INGRESS_TRAFFIC_ALL"
   template {

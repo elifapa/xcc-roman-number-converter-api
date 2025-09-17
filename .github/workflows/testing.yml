@@ -15,8 +15,8 @@ jobs:
 
       - name: Environment
         run: |
-          echo Running in environment: ${{env.environment}}
-          echo PG_USER: ${{env.PG_USER}}
+          echo Running in environment: ${{vars.environment}}
+          echo PG_USER: ${{secrets.PG_USER}}
 
       - name: Check env var GITHUB_CONTEXT
         run: echo "$GITHUB_CONTEXT"
