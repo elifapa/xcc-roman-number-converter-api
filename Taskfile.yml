@@ -1,13 +1,14 @@
 version: '3'
 
 vars:
+  ENVIRONMENT: prod
   LOCATION: europe-west4
   PROJECT_ID: ae-terraform-2025
   REPOSITORY: ae-2025-registry
   TARGET_IMAGE: easyconvert-api
   TAG: latest
   PROXY_PORT: 8000
-  CLOUD_RUN_NAME: easyconvert-api-dev
+  CLOUD_RUN_NAME: easyconvert-api-{{.ENVIRONMENT}}
   SERVICE_ACCOUNT_NAME: elif-github-actions-sa
   POOL_NAME: elif-github-actions-pool
   PROVIDER_NAME: github-provider
@@ -69,6 +70,7 @@ tasks:
         roles/secretmanager.secretAccessor
         roles/artifactregistry.reader
         roles/artifactregistry.writer
+        roles/artifactregistry.repoAdmin
         roles/logging.logWriter
         roles/serviceusage.serviceUsageAdmin
         roles/iam.serviceAccountAdmin
